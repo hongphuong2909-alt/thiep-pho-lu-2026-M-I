@@ -246,10 +246,11 @@
   </div>
 
 <script>
+  const angles =;
   const flowerSVG = (c1, c2) => `
     <svg viewBox="0 0 100 100" width="100%" height="100%">
       <g transform="translate(50,50)">
-        ${[0, 60, 120, 180, 240, 300].map(a => `
+        ${angles.map(a => `
           <ellipse cx="0" cy="-24" rx="13" ry="22" fill="${c1}" transform="rotate(${a})" opacity="0.92"/>
           <ellipse cx="0" cy="-19" rx="8" ry="14" fill="${c2}" transform="rotate(${a})"/>
         `).join('')}
