@@ -180,6 +180,22 @@
     animation: fadeUp 1.3s ease forwards;
     animation-delay: 4.1s;
   }
+  #music-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1d6f5c;
+    color: #fff;
+    border: 2px solid #d4af37;
+    padding: 10px 18px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 99;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
   @keyframes fadeUp {
     to { opacity: 1; transform: translateY(0); }
   }
@@ -205,6 +221,8 @@
 </style>
 </head>
 <body>
+  <button id="music-btn" onclick="toggleMusic()">🔊 Đang phát nhạc</button>
+
   <div id="envelope-screen" onclick="openCard()">
     <div class="school-tag">🏫 TRƯỜNG THCS PHỐ LU</div>
     <div class="envelope">
@@ -231,7 +249,7 @@
   const flowerSVG = (c1, c2) => `
     <svg viewBox="0 0 100 100" width="100%" height="100%">
       <g transform="translate(50,50)">
-        ${[0, 72, 144, 216, 288].map(a => `
+        ${[0, 60, 120, 180, 240, 300].map(a => `
           <ellipse cx="0" cy="-24" rx="13" ry="22" fill="${c1}" transform="rotate(${a})" opacity="0.92"/>
           <ellipse cx="0" cy="-19" rx="8" ry="14" fill="${c2}" transform="rotate(${a})"/>
         `).join('')}
@@ -246,62 +264,62 @@
   document.getElementById('fl3').innerHTML = flowerSVG('#f4a261', '#fde4cf');
   document.getElementById('fl4').innerHTML = flowerSVG('#288b74', '#a3d9cc');
 
-  // Giai điệu bài "Thương Lắm Thầy Cô Ơi" (Nhạc hộp nhạc trong trẻo, vui tươi)
+  let audioCtx = null;
+  let isPlaying = false;
+  let loopTimer = null;
+
   function playThuongLamThayCoOi() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AudioContext();
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    isPlaying = true;
     const notes = [
-      // "Từng nét chữ trên bảng xanh..."
-      { f: 523.25, d: 0.42 }, // C5
-      { f: 587.33, d: 0.42 }, // D5
-      { f: 659.25, d: 0.62 }, // E5
-      { f: 523.25, d: 0.42 }, // C5
-      { f: 659.25, d: 0.42 }, // E5
-      { f: 783.99, d: 0.85 }, // G5
-      // "Lời thầy giảng ấm áp bao yêu thương..."
-      { f: 880.00, d: 0.42 }, // A5
-      { f: 783.99, d: 0.42 }, // G5
-      { f: 659.25, d: 0.42 }, // E5
-      { f: 587.33, d: 0.42 }, // D5
-      { f: 523.25, d: 0.42 }, // C5
-      { f: 587.33, d: 0.90 }, // D5
-      // "Thương lắm thầy cô ơi..."
-      { f: 783.99, d: 0.45 }, // G5
-      { f: 880.00, d: 0.65 }, // A5
-      { f: 783.99, d: 0.45 }, // G5
-      { f: 659.25, d: 0.65 }, // E5
-      { f: 587.33, d: 0.45 }, // D5
-      { f: 659.25, d: 0.85 }, // E5
-      // "Dìu dắt chúng em nên người..."
-      { f: 587.33, d: 0.42 }, // D5
-      { f: 523.25, d: 0.42 }, // C5
-      { f: 440.00, d: 0.42 }, // A4
-      { f: 523.25, d: 0.42 }, // C5
-      { f: 587.33, d: 0.45 }, // D5
-      { f: 523.25, d: 1.25 }  // C5
+      { f: 523.25, d: 0.42 }, { f: 587.33, d: 0.42 }, { f: 659.25, d: 0.62 },
+      { f: 523.25, d: 0.42 }, { f: 659.25, d: 0.42 }, { f: 783.99, d: 0.85 },
+      { f: 880.00, d: 0.42 }, { f: 783.99, d: 0.42 }, { f: 659.25, d: 0.42 },
+      { f: 587.33, d: 0.42 }, { f: 523.25, d: 0.42 }, { f: 587.33, d: 0.90 },
+      { f: 783.99, d: 0.45 }, { f: 880.00, d: 0.65 }, { f: 783.99, d: 0.45 },
+      { f: 659.25, d: 0.65 }, { f: 587.33, d: 0.45 }, { f: 659.25, d: 0.85 },
+      { f: 587.33, d: 0.42 }, { f: 523.25, d: 0.42 }, { f: 440.00, d: 0.42 },
+      { f: 523.25, d: 0.42 }, { f: 587.33, d: 0.45 }, { f: 523.25, d: 1.25 }
     ];
 
-    function playLoop() {
-      let t = ctx.currentTime + 0.1;
+    function runMelody() {
+      if (!isPlaying) return;
+      let t = audioCtx.currentTime + 0.05;
       let totalTime = 0;
       notes.forEach(n => {
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(n.f, t);
         g.gain.setValueAtTime(0.001, t);
-        g.gain.exponentialRampToValueAtTime(0.16, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.32, t + 0.05);
         g.gain.exponentialRampToValueAtTime(0.0001, t + n.d);
         osc.connect(g);
-        g.connect(ctx.destination);
+        g.connect(audioCtx.destination);
         osc.start(t);
         osc.stop(t + n.d);
         t += n.d * 0.95;
         totalTime += n.d * 0.95;
       });
-      setTimeout(playLoop, (totalTime + 1.0) * 1000);
+      loopTimer = setTimeout(runMelody, (totalTime + 0.8) * 1000);
     }
-    playLoop();
+    runMelody();
+  }
+
+  function toggleMusic() {
+    const btn = document.getElementById('music-btn');
+    if (isPlaying) {
+      isPlaying = false;
+      clearTimeout(loopTimer);
+      if (audioCtx) audioCtx.suspend();
+      btn.innerHTML = '🔇 Đã tắt nhạc (Bấm bật)';
+    } else {
+      playThuongLamThayCoOi();
+      btn.innerHTML = '🔊 Đang phát nhạc';
+    }
   }
 
   function createSparkles() {
@@ -312,18 +330,3 @@
       s.style.width = size;
       s.style.height = size;
       s.style.left = Math.random() * 100 + 'vw';
-      s.style.animationDuration = Math.random() * 4 + 4 + 's';
-      s.style.animationDelay = Math.random() * 4 + 's';
-      document.body.appendChild(s);
-    }
-  }
-
-  function openCard() {
-    const env = document.getElementById('envelope-screen');
-    const card = document.getElementById('card-screen');
-    env.style.opacity = '0';
-    env.style.transform = 'scale(0.9)';
-    playThuongLamThayCoOi();
-    setTimeout(() => {
-      env.style.display = 'none';
-      card.style.display = 'flex';
